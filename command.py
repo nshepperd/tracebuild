@@ -15,7 +15,6 @@ LOGFILE = os.getenv('TRACE_LOG_LOCATION')
 with open(LOGFILE, 'a') as file:
     file.write(repr((os.getpid(), os.getcwd(), [op] + sys.argv[1:])) + '\n')
 
-
 # Create a process group for this command
 os.setpgid(0, 0)
 

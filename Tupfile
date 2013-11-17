@@ -1,0 +1,3 @@
+.gitignore
+
+: fs.c |> gcc -Wall -o %B %f `pkg-config fuse --cflags --libs` |> %B
