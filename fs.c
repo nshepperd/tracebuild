@@ -22,6 +22,7 @@
 
 #include <fuse.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 #include <fcntl.h>
@@ -166,6 +167,13 @@ static int xmp_rename(const char *from, const char *to)
 	if (res == -1)
 		return -errno;
 
+	// Make 'mv' work
+	FILE* fp = fopen(getenv("TRACE_LOG_LOCATION"), "a");
+	struct fuse_context* context = fuse_get_context();
+	fprintf(fp, "(%i, 'read', '%s')\n", getpgid(context->pid), from);
+	fprintf(fp, "(%i, 'write', '%s')\n", getpgid(context->pid), to);
+	fclose(fp);
+
 	return 0;
 }
 
@@ -234,6 +242,23 @@ static int xmp_open(const char *path, struct fuse_file_info *fi)
 	res = open(path, fi->flags);
 	if (res == -1)
 		return -errno;
+
+	FILE* fp = fopen(getenv("TRACE_LOG_LOCATION"), "a");
+	struct fuse_context* context = fuse_get_context();
+
+	switch(fi->flags & 0x03) {
+	case O_RDONLY:
+	  fprintf(fp, "(%i, 'read', '%s')\n", getpgid(context->pid), path);
+	  break;
+	case O_WRONLY:
+	case O_RDWR:
+	  fprintf(fp, "(%i, 'write', '%s')\n", getpgid(context->pid), path);
+	  break;
+	default:
+	  break;
+	}
+
+	fclose(fp);
 
 	close(res);
 	return 0;

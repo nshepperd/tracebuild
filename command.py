@@ -2,7 +2,7 @@
 import sys, os
 
 op = os.path.basename(sys.argv[0])
-mypath = os.path.realpath(os.path.dirname(sys.argv[0]))
+mypath = os.path.abspath(os.path.dirname(sys.argv[0]))
 PATH = os.getenv('PATH').split(':')
 
 # Delete ourselves from the PATH
