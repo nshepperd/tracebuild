@@ -1,4 +1,9 @@
+#!/usr/bin/python2
 import sys, os
+
+if len(sys.argv) < 4:
+    print 'Usage: {} <log-file> <root> <output-file>'.format(sys.argv[0])
+    exit(1)
 
 logfile = sys.argv[1]
 root = sys.argv[2]
@@ -46,10 +51,12 @@ for pid in pids:
         writedir = os.path.dirname(wr[0]) or '.'
         if cdirs[pid] == '':
             cdirs[pid] = '.'
-        # rd = [os.path.relpath(x, writedir) for x in rd]
-        # wr = [os.path.relpath(x, writedir) for x in wr]
         entries.append('{}: {}\n\t(cd {} && {})'.format(' '.join(wr), ' '.join(rd), cdirs[pid], ' '.join(commands[pid])))
-        # entries.append(( writedir, ': {} |> (cd {} && {}) |> {}'.format(' '.join(rd), os.path.relpath(cdirs[pid], writedir), ' '.join(commands[pid]), ' '.join(wr)) ))
+
+        # entries.append(': {rd} |> (cd {cwd} && {cmd}) |> {wr}'.format(rd=' '.join(rd),
+        #                                                               wr=' '.join(wr),
+        #                                                               cwd=cdirs[pid],
+        #                                                               cmd=' '.join(commands[pid])))
 
 def concat(gen):
     res = []
@@ -57,17 +64,8 @@ def concat(gen):
         res.extend(item)
     return res
 
-with open('Makefile', 'w') as file:
-    # file.write('all: {}\n\n'.format(' '.join(concat(writes.values()))))
-    file.write('all: libCLHEP-2.0.3.2.so\n\n')
+with open(to, 'w') as file:
+    file.write('all: {}\n\n'.format(' '.join(concat(writes.values()))))
     file.write('clean:\n\trm -f {}\n\n'.format(' '.join(concat(writes.values()))))
     for item in sorted(entries):
         file.write(item + '\n\n')
-
-# for (cwd, cmd) in sorted(entries):
-#     target_dir = os.path.join(to, cwd)
-#     # if not os.path.exists(target_dir):
-#     #     os.makedirs(target_dir)
-#     # with open(os.path.join(target_dir, 'Tupfile'), 'a') as file:
-#     #     file.write(cmd + '\n')
-#     print target_dir, cmd

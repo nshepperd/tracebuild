@@ -2,6 +2,10 @@
 import sys, os
 import tempfile
 
+if len(sys.argv) < 4:
+    print 'Usage: {} <root> <log-file> <command ...>'.format(sys.argv[0])
+    exit(1)
+
 cwd = os.path.abspath(os.getcwd())
 root = os.path.abspath(sys.argv[1])
 logfile = os.path.abspath(sys.argv[2])
