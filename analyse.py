@@ -11,10 +11,11 @@ root = sys.argv[2]
 root = os.path.realpath(root)        
 to = sys.argv[3]
 
-Operation = namedtuple('Operation', ['read', 'write', 'cwd', 'command'])
+Operation = namedtuple('Operation', ['read', 'write', 'cwd', 'command', 'id'])
 operations = {}
 
 with open(logfile, 'r') as file:
+    id = 0
     for line in file:
         line = eval(line)
         if line[1] in ('read', 'write'):
@@ -33,6 +34,7 @@ with open(logfile, 'r') as file:
                 # print 'write:', pid, os.path.relpath(fname, root)
                 operations[pid].write.add(os.path.relpath(fname, root))
         else:
+            id += 1
             # Create a new command
             (pid, cwd, command) = line
             # print 'create:', pid
@@ -43,7 +45,7 @@ with open(logfile, 'r') as file:
             cwd = cwd.replace(sub_root, '').lstrip('/') or '.'                    # root -> cwd
             # Strip out all absolute paths (/root/.mnt/root) from commands
             command = [x.replace(sub_root, rel_root) for x in command]
-            operations[pid] = Operation(set(), set(), cwd, command)
+            operations[pid] = Operation(set(), set(), cwd, command, id)
 
 def write_makefile(fname):
     entries = []
@@ -69,15 +71,14 @@ def write_makefile(fname):
 
 def write_tupfile(fname):
     entries = []
-    all_outputs = []
-    for (_, op) in sorted(operations.items()):
+
+    for op in sorted(operations.values(), key=lambda z: z.id):
         # Sort by pid, so we get the topological sort required for tup.
         if 'Tpo' in ' '.join(op.command):
             continue
         if op.write:
             read = sorted(op.read)
             write = sorted(op.write)
-            all_outputs.extend(write)
             entries.append(': {read} |> (cd {cwd} && {command}) |> {write}'.format(
                 read=' '.join(read),
                 write=' '.join(write),
