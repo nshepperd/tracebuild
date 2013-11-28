@@ -20,6 +20,9 @@
 #define _XOPEN_SOURCE 700
 #endif
 
+#define HAVE_SETXATTR
+#define HAVE_UTIMENSAT
+
 #include <fuse.h>
 #include <stdio.h>
 #include <stdlib.h>
