@@ -5,6 +5,10 @@ op = os.path.basename(sys.argv[0])
 mypath = os.path.abspath(os.path.dirname(sys.argv[0]))
 PATH = os.getenv('PATH').split(':')
 
+if op == 'mv':
+    # copy much cleaner than move in a build (immutable inputs)
+    op = 'cp'
+
 # Delete ourselves from the PATH
 if mypath in PATH:
     del PATH[PATH.index(mypath)]

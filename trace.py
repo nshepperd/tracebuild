@@ -19,7 +19,7 @@ TMPDIR = tempfile.mkdtemp()
 MYDIR = os.path.realpath(os.path.dirname(sys.argv[0]))
 
 # Set up environment
-COMMANDS = ['cp', 'mv', 'install', 'gcc', 'g++']
+COMMANDS = ['cp', 'mv', 'install', 'gcc', 'g++', 'flex', 'lex', 'yacc', 'bison']
 for cmd in COMMANDS:
     os.symlink(os.path.join(MYDIR, 'command.py'),
                os.path.join(TMPDIR, cmd))
