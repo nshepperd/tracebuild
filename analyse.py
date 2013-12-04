@@ -3,7 +3,7 @@ import sys, os
 from collections import namedtuple
 
 if len(sys.argv) < 4:
-    print 'Usage: {} <log-file> <root> <output-file>'.format(sys.argv[0])
+    print 'Usage: {0} <log-file> <root> <output-file>'.format(sys.argv[0])
     exit(1)
 
 logfile = sys.argv[1]
@@ -28,23 +28,23 @@ with open(logfile, 'r') as file:
                 continue
             if op == 'read':
                 # print 'read:', pid, os.path.relpath(fname, root)
-                operations[pid].read.add(os.path.relpath(fname, root))
+                # operations[pid].read.add(os.path.relpath(fname, root))
+                operations[pid].read.add(fname.lstrip('/'))
             else:
                 assert op == 'write'
                 # print 'write:', pid, os.path.relpath(fname, root)
-                operations[pid].write.add(os.path.relpath(fname, root))
+                operations[pid].write.add(fname.lstrip('/'))
         else:
             id += 1
             # Create a new command
             (pid, cwd, command) = line
             # print 'create:', pid
-            # Paths in the recorded command line are always of the form /root/.mnt/root/...
+            # Paths in the recorded command line may be of the form /root/...
             # We need to clean this up so the build can be relocated.
-            sub_root = os.path.join(os.path.join(root, '.mnt'), root.lstrip('/')) # /root/.mnt/root
-            rel_root = os.path.relpath(sub_root, cwd)                             # cwd -> root 
-            cwd = cwd.replace(sub_root, '').lstrip('/') or '.'                    # root -> cwd
+            rel_root = os.path.relpath(root, cwd)                             # cwd -> root 
+            cwd = os.path.relpath(cwd, root)
             # Strip out all absolute paths (/root/.mnt/root) from commands
-            command = [x.replace(sub_root, rel_root) for x in command]
+            command = [x.replace(root, rel_root) for x in command]
             operations[pid] = Operation(set(), set(), cwd, command, id)
 
 def write_makefile(fname):
@@ -64,8 +64,8 @@ def write_makefile(fname):
                 command=' '.join(op.command)))
 
     with open(fname, 'w') as file:
-        file.write('all: {}\n\n'.format(' '.join(all_outputs)))
-        file.write('clean:\n\trm -f {}\n\n'.format(' '.join(all_outputs)))
+        file.write('all: {0}\n\n'.format(' '.join(all_outputs)))
+        file.write('clean:\n\trm -f {0}\n\n'.format(' '.join(all_outputs)))
         for item in sorted(entries):
             file.write(item + '\n\n')
 

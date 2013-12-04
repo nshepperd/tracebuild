@@ -3,12 +3,12 @@ import sys, os
 import tempfile
 
 if len(sys.argv) < 4:
-    print 'Usage: {} <root> <log-file> <command ...>'.format(sys.argv[0])
+    print 'Usage: {0} <root> <log-file> <command ...>'.format(sys.argv[0])
     exit(1)
 
 cwd = os.path.abspath(os.getcwd())
-root = os.path.abspath(sys.argv[1])
-logfile = os.path.abspath(sys.argv[2])
+root = os.path.abspath(sys.argv[1]).rstrip('/')
+logfile = os.path.abspath(sys.argv[2]).rstrip('/').replace(root, root + '.tmp')
 command = sys.argv[3:]
 
 # We should be running inside the "root"
@@ -24,22 +24,24 @@ for cmd in COMMANDS:
     os.symlink(os.path.join(MYDIR, 'command.py'),
                os.path.join(TMPDIR, cmd))
 os.environ['TRACE_LOG_LOCATION'] = logfile
+os.environ['FUSE_ROOT'] = root + '.tmp'
 os.environ['PATH'] = TMPDIR + ':' + os.environ['PATH']
 
 # Mount a read/write-tracking filesystem
-# !!! We're assuming that the build is relocatable here !!!
+os.chdir('/')
+os.rename(root, root + '.tmp')
 fsmount = os.path.join(MYDIR, 'fs')
-mount_dir = os.path.join(root, '.mnt')
+mount_dir = root
 os.mkdir(mount_dir)
-print 'Mounting our tracing fs at {}.'.format(mount_dir)
 os.spawnv(os.P_WAIT, fsmount, [fsmount, mount_dir])
-os.chdir(os.path.join(mount_dir, cwd.lstrip('/')))
+os.chdir(cwd)
 
 os.spawnvp(os.P_WAIT, command[0], command)
 
-os.chdir(cwd)
+os.chdir('/')
 os.spawnvp(os.P_WAIT, 'fusermount', ['fusermount', '-u', mount_dir])
 os.rmdir(mount_dir)
+os.rename(root + '.tmp', root)
 
 for cmd in COMMANDS:
     os.unlink(os.path.join(TMPDIR, cmd))

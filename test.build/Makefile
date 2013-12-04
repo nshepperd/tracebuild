@@ -1,13 +1,13 @@
-all: one two
+all: one dir/two
 clean:
-	rm *.o one two
+	rm *.o dir/*.o one dir/two
 
 one.o: one.c
 	gcc -c -o one.o one.c
 one: one.o
 	gcc -o one one.o
 
-two.o: two.c
-	gcc -c -o two.o two.c
-two: two.o
-	gcc -o two two.o
+dir/two.o: dir/two.c
+	(cd dir && gcc -c -o two.o two.c)
+dir/two: dir/two.o
+	(cd dir && gcc -o two two.o)
