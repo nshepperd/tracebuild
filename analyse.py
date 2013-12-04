@@ -63,11 +63,12 @@ if filter:
     outputs = set()
     for pid in sorted(operations.keys(), key=lambda z: operations[z].id):
         for fname in operations[pid].read:
-            if (fname in outputs or os.path.exists(os.path.join(root, fname.lstrip('/')))):
-                outputs.update(operations[pid].write)
-            else:
+            if not (fname in outputs or os.path.exists(os.path.join(root, fname.lstrip('/')))):
                 print 'dropping command with missing inputs:', operations[pid].command
                 del operations[pid]
+                break
+        else:
+            outputs.update(operations[pid].write)
 
 
 def write_makefile(fname):
