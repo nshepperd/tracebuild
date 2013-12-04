@@ -2,13 +2,21 @@
 import sys, os
 from collections import namedtuple
 
+make = 'tup'
+if '--tup' in sys.argv:
+    make = 'tup'
+    del sys.argv[sys.argv.index('--tup')]
+if '--make' in sys.argv:
+    make = 'make'
+    del sys.argv[sys.argv.index('--make')]
+
 if len(sys.argv) < 4:
-    print 'Usage: {0} <log-file> <root> <output-file>'.format(sys.argv[0])
+    print 'Usage: {0} [--tup|--make] <root> <log-file> <output-file>'.format(sys.argv[0])
     exit(1)
 
-logfile = sys.argv[1]
-root = sys.argv[2]
+root = sys.argv[1]
 root = os.path.realpath(root)        
+logfile = sys.argv[2]
 to = sys.argv[3]
 
 Operation = namedtuple('Operation', ['read', 'write', 'cwd', 'command', 'id'])
@@ -89,5 +97,8 @@ def write_tupfile(fname):
         for item in entries:
             file.write(item + '\n\n')
 
-# write_makefile(to)
-write_tupfile(to)
+if make == 'make':
+    write_makefile(to)
+else:
+    assert make == 'tup'
+    write_tupfile(to)
