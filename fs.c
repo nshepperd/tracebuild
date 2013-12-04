@@ -197,9 +197,7 @@ static int xmp_symlink(const char *from, const char *to)
   int res;
 
   char tmp1[4097];
-  char tmp2[4097];
   from = path_transform(tmp1, from);
-  to = path_transform(tmp2, to);
 
   res = symlink(from, to);
   if (res == -1)
