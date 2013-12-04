@@ -3,15 +3,19 @@ import sys, os
 from collections import namedtuple
 
 make = 'tup'
+filter = False
 if '--tup' in sys.argv:
     make = 'tup'
     del sys.argv[sys.argv.index('--tup')]
 if '--make' in sys.argv:
     make = 'make'
     del sys.argv[sys.argv.index('--make')]
+if '--filter' in sys.argv:
+    filter = True
+    del sys.argv[sys.argv.index('--filter')]
 
 if len(sys.argv) < 4:
-    print 'Usage: {0} [--tup|--make] <root> <log-file> <output-file>'.format(sys.argv[0])
+    print 'Usage: {0} [--tup|--make] [--filter] <root> <log-file> <output-file>'.format(sys.argv[0])
     exit(1)
 
 root = sys.argv[1]
@@ -54,6 +58,17 @@ with open(logfile, 'r') as file:
             # Strip out all absolute paths (/root/.mnt/root) from commands
             command = [x.replace(root, rel_root) for x in command]
             operations[pid] = Operation(set(), set(), cwd, command, id)
+
+if filter:
+    outputs = set()
+    for pid in sorted(operations.keys(), key=lambda z: operations[z].id):
+        for fname in operations[pid].read:
+            if (fname in outputs or os.path.exists(os.path.join(root, fname.lstrip('/')))):
+                outputs.update(operations[pid].write)
+            else:
+                print 'dropping command with missing inputs:', operations[pid].command
+                del operations[pid]
+
 
 def write_makefile(fname):
     entries = []
