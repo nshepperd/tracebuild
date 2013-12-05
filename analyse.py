@@ -133,7 +133,7 @@ def write_tupfile(fname):
                 read=' '.join(read),
                 write=' '.join(write),
                 cwd=op.cwd,
-                command=' '.join(op.command)))
+                command=' '.join("'{0}'".format(bit.replace("'", "'\\''") for bit in op.command)))
 
     with open(fname, 'w') as file:
         for item in entries:
