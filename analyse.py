@@ -71,6 +71,32 @@ if filter:
             outputs.update(operations[pid].write)
 
 
+to_delete = set()
+owned = {}
+for pid in sorted(operations.keys(), key=lambda z: operations[z].id):
+    for fname in operations[pid].write:
+        if fname not in owned:
+            owned[fname] = pid
+        elif owned[fname] != pid:
+            print 'conflict!'
+            print ' ', operations[owned[fname]].cwd, ' '.join(operations[owned[fname]].command)
+            print ' ', operations[pid].cwd, ' '.join(operations[pid].command)
+            to_delete.add(pid)
+            owned[fname] = pid
+for pid in to_delete:
+    del operations[pid]
+
+if filter:
+    outputs = set()
+    for pid in sorted(operations.keys(), key=lambda z: operations[z].id):
+        for fname in operations[pid].read:
+            if not (fname in outputs or os.path.exists(os.path.join(root, fname.lstrip('/')))):
+                print 'dropping command with missing inputs:', operations[pid].command
+                del operations[pid]
+                break
+        else:
+            outputs.update(operations[pid].write)
+
 def write_makefile(fname):
     entries = []
     all_outputs = []
