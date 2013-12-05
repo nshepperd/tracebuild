@@ -40,17 +40,17 @@ with open(logfile, 'r') as file:
             if pid not in pid_to_id:
                 # print 'Discarding irrelevant action', pid
                 continue
-            id = pid_to_id[pid]
+            cid = pid_to_id[pid]
             if op == 'read':
                 # print 'read:', pid, os.path.relpath(fname, root)
                 # operations[pid].read.add(os.path.relpath(fname, root))
-                operations[id].read.add(fname.lstrip('/'))
+                operations[cid].read.add(fname.lstrip('/'))
             else:
                 assert op == 'write'
                 # print 'write:', pid, os.path.relpath(fname, root)
-                operations[id].write.add(fname.lstrip('/'))
+                operations[cid].write.add(fname.lstrip('/'))
         else:
-            id += 1
+            id += 1 # id: topological sort order
             # Create a new command
             (pid, cwd, command) = line
             # print 'create:', pid
@@ -64,6 +64,7 @@ with open(logfile, 'r') as file:
             pid_to_id[pid] = id
 
 if filter:
+    # Only keep commands whose inputs are regular files, or will be created by another command which we keep
     outputs = set()
     for pid in sorted(operations.keys()):
         for fname in operations[pid].read:
