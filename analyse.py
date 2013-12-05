@@ -23,6 +23,8 @@ root = os.path.realpath(root)
 logfile = sys.argv[2]
 to = sys.argv[3]
 
+pid_to_id = {}
+
 Operation = namedtuple('Operation', ['read', 'write', 'cwd', 'command', 'id'])
 operations = {}
 
@@ -35,17 +37,18 @@ with open(logfile, 'r') as file:
             # Note, the command itself should always be listed before any inputs and outputs.
             (pid, op, fname) = line
             # If not, discard it
-            if pid not in operations:
+            if pid not in pid_to_id:
                 # print 'Discarding irrelevant action', pid
                 continue
+            id = pid_to_id[pid]
             if op == 'read':
                 # print 'read:', pid, os.path.relpath(fname, root)
                 # operations[pid].read.add(os.path.relpath(fname, root))
-                operations[pid].read.add(fname.lstrip('/'))
+                operations[id].read.add(fname.lstrip('/'))
             else:
                 assert op == 'write'
                 # print 'write:', pid, os.path.relpath(fname, root)
-                operations[pid].write.add(fname.lstrip('/'))
+                operations[id].write.add(fname.lstrip('/'))
         else:
             id += 1
             # Create a new command
@@ -57,11 +60,12 @@ with open(logfile, 'r') as file:
             cwd = os.path.relpath(cwd, root)
             # Strip out all absolute paths (/root/.mnt/root) from commands
             command = [x.replace(root, rel_root) for x in command]
-            operations[pid] = Operation(set(), set(), cwd, command, id)
+            operations[id] = Operation(set(), set(), cwd, command, id)
+            pid_to_id[pid] = id
 
 if filter:
     outputs = set()
-    for pid in sorted(operations.keys(), key=lambda z: operations[z].id):
+    for pid in sorted(operations.keys()):
         for fname in operations[pid].read:
             if not (fname in outputs or os.path.exists(os.path.join(root, fname.lstrip('/')))):
                 print 'dropping command with missing inputs:', operations[pid].command
@@ -73,7 +77,7 @@ if filter:
 
 to_delete = set()
 owned = {}
-for pid in sorted(operations.keys(), key=lambda z: operations[z].id):
+for pid in sorted(operations.keys()):
     for fname in operations[pid].write:
         if fname not in owned:
             owned[fname] = pid
@@ -88,7 +92,7 @@ for pid in to_delete:
 
 if filter:
     outputs = set()
-    for pid in sorted(operations.keys(), key=lambda z: operations[z].id):
+    for pid in sorted(operations.keys()):
         for fname in operations[pid].read:
             if not (fname in outputs or os.path.exists(os.path.join(root, fname.lstrip('/')))):
                 print 'dropping command with missing inputs:', operations[pid].command
@@ -123,7 +127,7 @@ def write_tupfile(fname):
     entries = []
 
     for op in sorted(operations.values(), key=lambda z: z.id):
-        # Sort by pid, so we get the topological sort required for tup.
+        # Sort by id, so we get the topological sort required for tup.
         if 'Tpo' in ' '.join(op.command):
             continue
         if op.write:
