@@ -88,7 +88,7 @@ for id in sorted(operations.keys()):
         elif fname in ifiles:
             # already created, we're overwriting!
             orig = ifiles[fname]
-            files[orig] = File(files[orig].original, '{}-{}'.format(files[orig].original, files[orig].v), orig, files[orig].v)
+            files[orig] = File(files[orig].original, '{0}-{1}'.format(files[orig].original, files[orig].v), orig, files[orig].v)
             fid = max([0] + files.keys()) + 1
             files[fid] = File(fname, fname, fid, files[orig].v + 1)
             ifiles[fname] = fid
@@ -131,7 +131,7 @@ def get_action(op):
     else:
         iread = ' '.join(files[fid].original + ' ' + files[fid].final for fid in op.read)
         iwrite = ' '.join(files[fid].original + ' ' + files[fid].final for fid in op.write)
-        return './isolate {} -- {} -- {} {}'.format(iread, iwrite, op.cwd, ' '.join(op.command))
+        return './isolate {0} -- {1} -- {2} {3}'.format(iread, iwrite, op.cwd, ' '.join(op.command))
 
 def write_makefile(fname):
     entries = []
