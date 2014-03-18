@@ -82,7 +82,9 @@ for id in sorted(operations.keys()):
     write = []
     for fname in op.write:
         if fname in sources:
-            exit('error: shouldn\'t write to a source file')
+            del operations[id]
+            print 'warning: operation {0} writes to source file {1}'.format(op.command, fname)
+            break
         elif fname in ifiles:
             # already created, we're overwriting!
             orig = ifiles[fname]
@@ -96,7 +98,8 @@ for id in sorted(operations.keys()):
             files[fid] = File(fname, fname, fid, 1)
             ifiles[fname] = fid
             write.append(fid)
-    operations[id] = Operation(read, write, op.cwd, op.command, op.id)
+    else:
+        operations[id] = Operation(read, write, op.cwd, op.command, op.id)
 
 if filter:
     # Only keep commands whose inputs are regular files, or will be created by another command which we keep
