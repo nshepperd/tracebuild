@@ -127,11 +127,11 @@ def get_action(op):
         if op.cwd == '.':
             return ' '.join(op.command)
         else:
-            return '(cd {cwd} && {command})'.format(cwd=op.cwd, command=' '.join(op.command))
+            return '(cd {cwd} && {command})'.format(cwd=op.cwd, command=' '.join(map(shell_escape, op.command)))
     else:
         iread = ' '.join(files[fid].original + ' ' + files[fid].final for fid in op.read)
         iwrite = ' '.join(files[fid].original + ' ' + files[fid].final for fid in op.write)
-        return './isolate {0} -- {1} -- {2} {3}'.format(iread, iwrite, op.cwd, ' '.join(op.command))
+        return './isolate {0} -- {1} -- {2} {3}'.format(iread, iwrite, op.cwd, ' '.join(map(shell_escape, op.command)))
 
 def write_makefile(fname):
     entries = []
