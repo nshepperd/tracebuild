@@ -44,7 +44,7 @@ def readinfo():
             cwd = os.path.relpath(cwd, ROOT)
             info[uuid] = {'parent' : puuid,
                           'command' : command,
-                          'cwd' : os.path.relpath(cwd, ROOT),
+                          'cwd' : cwd,
                           'desc' : set(),
                           'children' : set(),
                           'd' : set(),
