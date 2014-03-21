@@ -63,6 +63,7 @@ def readinfo():
 
 def applyaccess(info, access):
     for (uuid, rw, path) in access:
+        path = path.lstrip('/')
         if rw == 'r' and path in info[uuid]['w']:
             # if we write first and only read it later in the same process
             # it's probably just an output
