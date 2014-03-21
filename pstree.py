@@ -17,7 +17,7 @@ def scratch(line):
     sys.stdout.write(str(line).ljust(80) + '\r')
     sys.stdout.flush()
 
-def readaccess():
+def readaccess(ROOT, LOGPATH):
     access = []
     with open(os.path.join(LOGPATH, 'access_log'), 'rb') as file:
         fsize = getfilesize(file)
@@ -29,7 +29,7 @@ def readaccess():
             access.append((uuid, rw, path))
     return access
 
-def readinfo():
+def readinfo(ROOT, LOGPATH):
     info = {}
     with open(os.path.join(LOGPATH, 'info'), 'rb') as file:
         fsize = getfilesize(file)
@@ -112,6 +112,14 @@ def descend(info, uuid=1):
         for c in ch:
             descend(info, c)
 
+def getinfo(ROOT, LOGPATH):
+    access = readaccess(ROOT, LOGPATH)
+    info = readinfo(ROOT, LOGPATH)
+    applyaccess(info, access)
+    filtertree(info)
+    descend(info)
+    return info
+
 if __name__ == '__main__':
     if len(sys.argv) < 3:
         print 'Usage: {0} <root> <logpath>'.format(sys.argv[0])
@@ -119,9 +127,4 @@ if __name__ == '__main__':
 
     ROOT = os.path.abspath(sys.argv[1]).rstrip('/')
     LOGPATH = sys.argv[2]
-    access = readaccess()
-    info = readinfo()
-    applyaccess(info, access)
-    filtertree(info)
-    descend(info)
-    pprint(info)
+    pprint(getinfo(ROOT, LOGPATH))
