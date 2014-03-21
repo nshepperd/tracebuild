@@ -36,19 +36,20 @@ def readinfo():
         while file.tell() < fsize:
             uuid = fromint(file.read(4))
             puuid = fromint(file.read(4))
-            cmdlen = fromint(file.read(4))
-            cmd = file.read(cmdlen).split('\0')[:-1]
+            commandlen = fromint(file.read(4))
+            command = file.read(commandlen).split('\0')[:-1]
             cwdlen = fromint(file.read(4))
             cwd = file.read(cwdlen)
+            command = [part.replace(ROOT, os.path.relpath(ROOT, cwd)) for part in command] # strip absolute paths
+            cwd = os.path.relpath(cwd, ROOT)
             info[uuid] = {'parent' : puuid,
-                          'command' : cmd,
+                          'command' : command,
                           'cwd' : os.path.relpath(cwd, ROOT),
                           'desc' : set(),
                           'children' : set(),
                           'd' : set(),
                           'r' : set(),
                           'w' : set()}
-
 
     for uuid in info.keys():
         parent = info[uuid]['parent']
