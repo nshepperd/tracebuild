@@ -91,15 +91,6 @@ def kill_descendants(info, uuid):
             del info[child]
 
 def filtertree(info):
-    # for uuid in list(info.keys()):
-    #     if uuid not in info:
-    #         continue
-    #     if info[uuid]['command'][0] in ['gcc', 'clang']:
-    #         # kill_parents(info, uuid)
-    #         kill_descendants(info, uuid)
-    #     elif info[uuid]['command'][0] in ['fork']:
-    #         del info[uuid]
-
     for uuid in list(info.keys()):
         if not info[uuid]['w']:
             del info[uuid]
@@ -111,14 +102,11 @@ def filtertree(info):
         info[uuid]['children'] = {c for c in info[uuid]['children'] if c in info}
 
 def descend(info, uuid=1):
-    if uuid == 191:
-        print 'here'
     if not info[uuid]['children']:
         return
     elif info[uuid]['command'][0] in ['gcc', 'clang', 'g++']:
         kill_descendants(info, uuid)
     else:
-        # info[uuid]['command'][0] == 'fork':
         ch = info[uuid]['children']
         del info[uuid]
         for c in ch:
