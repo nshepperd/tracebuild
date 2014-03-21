@@ -44,6 +44,7 @@ try:
 finally:
     del os.environ['LD_PRELOAD']
     os.chdir('/')
-    os.spawnvp(os.P_WAIT, 'fusermount', ['fusermount', '-u', mount_dir])
+    while os.spawnvp(os.P_WAIT, 'fusermount', ['fusermount', '-u', mount_dir]) != 0:
+        pass
     os.rmdir(mount_dir)
     os.rename(root + '.tmp', root)
