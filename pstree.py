@@ -62,6 +62,10 @@ def readinfo():
 
 def applyaccess(info, access):
     for (uuid, rw, path) in access:
+        if rw == 'r' and path in info[uuid]['w']:
+            # if we write first and only read it later in the same process
+            # it's probably just an output
+            continue
         while uuid in info:
             info[uuid][rw].add(path)
             uuid = info[uuid]['parent']
