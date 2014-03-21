@@ -1,3 +1,5 @@
 .gitignore
 
-: fs.c |> gcc -Wall -o %B %f `pkg-config fuse --cflags --libs` |> %B
+: fs.c |> clang -Wall -o %B %f `pkg-config fuse --cflags --libs` |> %B
+
+: pid.c |> clang -Wall -g -fPIC -shared -o %o %f |> libpid.so

@@ -37,8 +37,18 @@
 #include <sys/xattr.h>
 #endif
 
+typedef unsigned int uint32;
+
 static const char* root_path = NULL;
+static const char* LOGPATH = NULL;
 static const char* log_path = NULL;
+
+static char* append(const char* one, const char* two) {
+  char* result = malloc(strlen(one) + strlen(two) + 1);
+  strcpy(result, one);
+  strcat(result, two);
+  return result;
+}
 
 static const char* path_transform(char* dst, const char* path) {
   const char* nonslash = path;
@@ -49,6 +59,52 @@ static const char* path_transform(char* dst, const char* path) {
   strcat(dst, "/");
   strcat(dst, nonslash);
   return dst;
+}
+
+static void log_access(uint32 id, const char* fname, char rw) {
+  uint32 len = strlen(fname);
+  FILE* fp = fopen(log_path, "a");
+  fwrite(&id, 4, 1, fp);
+  fwrite(&rw, 1, 1, fp);
+  fwrite(&len, 4, 1, fp);
+  fwrite(fname, 1, len, fp);
+  fclose(fp);
+}
+
+static uint32 getid(uint32 pid) {
+  const char* TABLEPATH = append(LOGPATH, "/idtable");
+  FILE* fp = fopen(TABLEPATH, "rb");
+  uint32 kid = 0;
+  uint32 success = 0;
+  if(fp != NULL) {
+    while(!feof(fp)) {
+      if(fread(&kid, 4, 1, fp) == 0) {
+	break;
+      }
+
+      if(kid == pid) {
+	fread(&success, 4, 1, fp);
+	break;
+      }
+
+      /* otherwise check the next item */
+      fseek(fp, 4, SEEK_CUR);
+    }
+    fclose(fp);
+  } else {
+    printf("failed to open idtable\n");
+  }
+
+  free((void*) TABLEPATH);
+  return success;
+}
+
+static void maybe_log(const char* fname, char mode) {
+  struct fuse_context* context = fuse_get_context();
+  uint32 id = getid(context->pid);
+  if(id) {
+    log_access(id, fname, mode);
+  }
 }
 
 static int xmp_getattr(const char *path, struct stat *stbuf)
@@ -219,12 +275,12 @@ static int xmp_rename(const char *from, const char *to)
   if (res == -1)
     return -errno;
 
-  // Make 'mv' work
-  FILE* fp = fopen(log_path, "a");
   struct fuse_context* context = fuse_get_context();
-  fprintf(fp, "(%i, 'read', '%s')\n", getpgid(context->pid), from);
-  fprintf(fp, "(%i, 'write', '%s')\n", getpgid(context->pid), to);
-  fclose(fp);
+  uint32 id = getid(context->pid);
+  if(id) {
+    log_access(id, from, 'd');
+    log_access(id, to, 'w');
+  }
 
   return 0;
 }
@@ -306,33 +362,26 @@ static int xmp_utimens(const char *path, const struct timespec ts[2])
 
 static int xmp_open(const char *path, struct fuse_file_info *fi)
 {
-  int res;
-
   char tmp[4097];
   path_transform(tmp, path);
 
-  res = open(tmp, fi->flags);
+  int res = open(tmp, fi->flags);
   if (res == -1)
     return -errno;
-
-  FILE* fp = fopen(log_path, "a");
-  struct fuse_context* context = fuse_get_context();
+  close(res);
 
   switch(fi->flags & 0x03) {
-  case O_RDONLY:
-    fprintf(fp, "(%i, 'read', '%s')\n", getpgid(context->pid), path);
-    break;
-  case O_WRONLY:
-  case O_RDWR:
-    fprintf(fp, "(%i, 'write', '%s')\n", getpgid(context->pid), path);
-    break;
-  default:
-    break;
+    case O_RDONLY:
+      maybe_log(path, 'r');
+      break;
+    case O_WRONLY:
+    case O_RDWR:
+      maybe_log(path, 'w');
+      break;
+    default:
+      break;
   }
 
-  fclose(fp);
-
-  close(res);
   return 0;
 }
 
@@ -551,11 +600,13 @@ int main(int argc, char *argv[])
 
 	printf("%s\n", root_path);
 
-	log_path = getenv("TRACE_LOG_LOCATION");
-	if(log_path == NULL || !strlen(log_path)) {
-	  fprintf(stderr, "You need to set TRACE_LOG_LOCATION.\n");
+	LOGPATH = getenv("LOGPATH");
+	if(LOGPATH == NULL || !strlen(LOGPATH)) {
+	  fprintf(stderr, "You need to set LOGPATH.\n");
 	  return 1;
 	}
+
+	log_path = append(LOGPATH, "/access_log");
 
 	return fuse_main(argc, argv, &xmp_oper, NULL);
 }
