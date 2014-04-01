@@ -2,4 +2,4 @@
 
 : fs.c |> clang -Wall -o %B %f `pkg-config fuse --cflags --libs` |> %B
 
-: pid.c |> clang -Wall -g -fPIC -shared -o %o %f |> libpid.so
+: pid.c |> clang -Wall -g -fPIC -shared -o %o %f -ldl |> libpid.so
