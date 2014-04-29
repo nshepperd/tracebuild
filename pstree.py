@@ -50,6 +50,7 @@ def readinfo(ROOT, LOGPATH):
                           'd' : set(),
                           'r' : set(),
                           'w' : set()}
+            scratch(file.tell() / float(fsize))
 
     for uuid in info.keys():
         parent = info[uuid]['parent']
@@ -98,8 +99,8 @@ def filtertree(info):
             del info[uuid]
 
     for uuid in info.keys():
-        info[uuid]['desc'] = {c for c in info[uuid]['desc'] if c in info}
-        info[uuid]['children'] = {c for c in info[uuid]['children'] if c in info}
+        info[uuid]['desc'] = [c for c in info[uuid]['desc'] if c in info]
+        info[uuid]['children'] = [c for c in info[uuid]['children'] if c in info]
 
 def descend(info, uuid=1):
     if not info[uuid]['children']:
