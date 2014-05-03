@@ -1,6 +1,7 @@
 #!/usr/bin/python2
 import sys, os
 import struct
+import argparse
 from pprint import pprint
 
 def fromint(s):
@@ -37,9 +38,15 @@ def match_configure(title, command):
             return True
     return False
 
-def readinfo(ROOT, LOGPATH, EXTRAROOTS):
+def replaceall(s, repl, new):
+    for r in repl:
+        s = s.replace(r, new)
+    return s
+
+def readinfo(roots, logpath):
     info = {}
     parents = {}
+    killed = set()
     i = 0
 
     # index = {}
@@ -50,7 +57,7 @@ def readinfo(ROOT, LOGPATH, EXTRAROOTS):
     #         location = fromint(file.read(4))
     #         index[uuid] = location
 
-    with open(os.path.join(LOGPATH, 'info'), 'rb') as file:
+    with open(os.path.join(logpath, 'info'), 'rb') as file:
         fsize = getfilesize(file)
         while file.tell() < fsize:
             uuid = fromint(file.read(4))
@@ -62,24 +69,24 @@ def readinfo(ROOT, LOGPATH, EXTRAROOTS):
 
             title = os.path.basename(command[0])
 
+            cwd = replaceall(cwd, roots, '') or '/'
+
             if puuid in parents:
                 parents[uuid] = parents[puuid]
-            elif title in ('gcc', 'g++', 'cp', 'install', 'mv', 'gfortran', 'ar', 'perl', 'bbstable', 'bison', 'flex', 'm4', 'debugedit', 'ranlib', 'strip', 'chmod') or match_configure(title, command):
-                for ro in [ROOT] + EXTRAROOTS:
-                    command = [part.replace(ro, os.path.relpath(ROOT, cwd)) for part in command] # strip absolute paths
-                cwd = os.path.relpath(cwd, ROOT)
+            elif puuid in killed:
+                killed.add(uuid)
+            elif title in ('gcc', 'g++', 'cp', 'install', 'mv', 'gfortran', 'ar', 'perl', 'bbstable', 'bison', 'flex', 'm4', 'ranlib', 'strip', 'chmod'):
+                command = [replaceall(part, roots, os.path.relpath('/', cwd)) for part in command] # strip absolute paths
+                cwd = os.path.relpath(cwd, '/')
                 info[uuid] = {'command' : command,
                               'cwd' : cwd,
                               'd' : set(),
                               'r' : set(),
                               'w' : set()}
                 parents[uuid] = uuid
-                # if 'conftest.c' in command:
-                #     print command
-                #     while puuid in index:
-                #         (uuid, puuid, command, cwd) = loadinfoat(file, index[puuid])
-                #         print ' ', command
-            elif title in ['fork', 'sed', 'rm', 'pwd', 'date', 'ln', 'echo', 'gmake', 'make', 'mkdir', 'grep', 'ls', 'awk', 'cat', 'egrep', 'file', 'find', 'objdump', 'sh']:
+            elif match_configure(title, command):
+                killed.add(uuid)
+            elif title in ['fork', 'sed', 'rm', 'pwd', 'date', 'ln', 'echo', 'gmake', 'make', 'mkdir', 'grep', 'ls', 'awk', 'cat', 'egrep', 'file', 'find', 'objdump', 'sh', 'debugedit', 'uname', 'mktemp', 'sort', 'cut', 'diff']:
                 pass
             else:
                 print 'unmatched:', command
@@ -87,7 +94,7 @@ def readinfo(ROOT, LOGPATH, EXTRAROOTS):
                 scratch('read info', file.tell() / float(fsize))
             i += 1
 
-    with open(os.path.join(LOGPATH, 'access_log'), 'rb') as file:
+    with open(os.path.join(logpath, 'access_log'), 'rb') as file:
         fsize = getfilesize(file)
         while file.tell() < fsize:
             uuid = fromint(file.read(4))
@@ -110,13 +117,47 @@ def readinfo(ROOT, LOGPATH, EXTRAROOTS):
         if not info[uuid]['w']:
             del info[uuid]
 
+    version = {}
+
+    for uuid in sorted(info.keys()):
+        proc = info[uuid]
+        read = proc['r'].union(proc['d'])
+        for fname in read:
+            if fname not in version:
+                version[fname] = 0
+        proc['r'] = [(fname, version[fname]) for fname in read]
+        del proc['d']
+        for fname in proc['w']:
+            version[fname] = 1 + version.get(fname, 0)
+        proc['w'] = [(fname, version[fname]) for fname in proc['w']]
+        print proc
+
+    have = set(version.items())
+
+    # for uuid in sorted(info.keys()):
+    #     proc = info[uuid]
+    #     inputs = []
+    #     for (fname, v) in proc['r']:
+    #         if v == version[fname]:
+    #             inputs.append((fname, fname))
+    #         else:
+    #             inputs.append((fname, fname + ',' + v))
+    #     for (fname, v) in proc['w']:
+    #         if v == version[fname]:
+    #             inputs.append((fname, fname))
+    #         else:
+    #             inputs.append((fname, fname + ',' + v))
+
+
     return info
 
 if __name__ == '__main__':
-    if len(sys.argv) < 3:
-        print 'Usage: {0} <root> <logpath> [extra-roots]'.format(sys.argv[0])
-        exit(1)
+    parser = argparse.ArgumentParser(description="Find relevant build steps in log files.")
+    parser.add_argument('--root', action='append', help="Roots of the build.", required=True)
+    parser.add_argument('--mount', help="Somewhere the completed build can be found.")
+    parser.add_argument('logpath', help="Path to the logs directory.")
+    args = parser.parse_args()
 
-    ROOT = os.path.abspath(sys.argv[1]).rstrip('/')
-    LOGPATH = sys.argv[2]
-    pprint(readinfo(ROOT, LOGPATH, sys.argv[3:]))
+    ROOTS = [os.path.abspath(path).rstrip('/') for path in args.root]
+    info = readinfo(ROOTS, args.logpath)
+    # pprint(info)
